@@ -1,0 +1,30 @@
+item {
+    name: "blackheads",
+    id: 1,
+    display_name: "blackheads"
+}
+item {
+    name: "dark spot",
+    id: 2,
+    display_name: "dark spot"
+}
+item {
+    name: "nodules",
+    id: 3,
+    display_name: "nodules"
+}
+item {
+    name: "papules",
+    id: 4,
+    display_name: "papules"
+}
+item {
+    name: "pustules",
+    id: 5,
+    display_name: "pustules"
+}
+item {
+    name: "whiteheads",
+    id: 6,
+    display_name: "whiteheads"
+}
