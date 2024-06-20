@@ -22,8 +22,19 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp"
-            android:src="@drawable/ic_profile"
-            android:background="@drawable/circle_shape" />
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/ic_profile" />
+
+        <ImageView
+            android:id="@+id/edit_picture"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="-40dp"
+            android:src="@drawable/ic_edit"
+            android:background="@android:color/white"
+            android:layout_marginEnd="10dp"
+            android:visibility="gone" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -72,12 +83,12 @@
             android:layout_marginTop="16dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/mobile_number"
+                android:id="@+id/number"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Mobile number"
+                android:hint="Number"
                 android:inputType="phone"
-                android:text="@={profile.mobileNumber}"
+                android:text="@={profile.number}"
                 android:enabled="false" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -104,12 +115,28 @@
             android:layout_marginTop="16dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/country"
+                android:id="@+id/region"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Country/Region"
+                android:hint="Region"
                 android:inputType="text"
-                android:text="@={profile.country}"
+                android:text="@={profile.region}"
+                android:enabled="false" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:text="@={profile.password}"
                 android:enabled="false" />
 
         </com.google.android.material.textfield.TextInputLayout>

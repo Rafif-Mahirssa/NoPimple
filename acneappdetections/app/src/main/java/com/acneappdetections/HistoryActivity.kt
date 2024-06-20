@@ -17,8 +17,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.acneappdetections.api.ApiClient
+import com.acneappdetections.api.HistoryItem
+import com.acneappdetections.api.UserApi
 import com.acneappdetections.databinding.ActivityHistoryBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -31,22 +37,19 @@ class HistoryActivity : AppCompatActivity() {
     private val PICK_IMAGE_REQUEST = 1
     private val REQUEST_IMAGE_CAPTURE = 2
     private lateinit var currentPhotoPath: String
+    private lateinit var adapter: HistoryAdapter
+    private val historyItems = mutableListOf<HistoryItem>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityHistoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val historyItems = listOf(
-            HistoryItem("31/05/2022", "Acne detected", "Image1.jpg"),
-            HistoryItem("30/05/2022", "No acne detected", "Image2.jpg"),
-            HistoryItem("29/05/2022", "Acne detected", "Image3.jpg")
-            // Add more items here
-        )
-
-        val adapter = HistoryAdapter(historyItems)
+        adapter = HistoryAdapter(historyItems)
         binding.recyclerViewHistory.layoutManager = LinearLayoutManager(this)
         binding.recyclerViewHistory.adapter = adapter
+
+        fetchHistoryItems()
 
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         bottomNavigationView.setOnNavigationItemSelectedListener { item ->
@@ -72,6 +75,27 @@ class HistoryActivity : AppCompatActivity() {
         buttonBack.setOnClickListener {
             finish()
         }
+    }
+
+    private fun fetchHistoryItems() {
+        val userApi = ApiClient.create(UserApi::class.java)
+        userApi.getHistoryItems().enqueue(object : Callback<List<HistoryItem>> {
+            override fun onResponse(call: Call<List<HistoryItem>>, response: Response<List<HistoryItem>>) {
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        historyItems.clear()
+                        historyItems.addAll(it)
+                        adapter.notifyDataSetChanged()
+                    }
+                } else {
+                    Toast.makeText(this@HistoryActivity, "Failed to fetch history items", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<List<HistoryItem>>, t: Throwable) {
+                Toast.makeText(this@HistoryActivity, "Error fetching history items", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun openGallery() {

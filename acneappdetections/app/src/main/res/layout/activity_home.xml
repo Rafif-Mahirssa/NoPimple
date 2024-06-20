@@ -51,7 +51,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/welcomeText" />
 
-    <!-- CardView for startQuestButton -->
     <androidx.cardview.widget.CardView
         android:id="@+id/startQuestCard"
         android:layout_width="0dp"
@@ -108,7 +107,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- RecyclerView for displaying detected images -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewDetectedImages"
                 android:layout_width="match_parent"

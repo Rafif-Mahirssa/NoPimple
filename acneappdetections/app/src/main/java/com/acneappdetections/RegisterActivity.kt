@@ -7,6 +7,13 @@ import android.widget.EditText
 import android.widget.TextView
 import android.content.Intent
 import android.widget.Toast
+import com.acneappdetections.api.ApiClient
+import com.acneappdetections.api.RegisterRequest
+import com.acneappdetections.api.RegisterResponse
+import com.acneappdetections.api.UserApi
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -42,12 +49,8 @@ class RegisterActivity : AppCompatActivity() {
             } else if (password != confirmPassword) {
                 Toast.makeText(this, "Password tidak cocok", Toast.LENGTH_SHORT).show()
             } else {
-                // Lakukan registrasi (misalnya, kirim data ke server)
-                // ...
-
-                // Jika registrasi berhasil, arahkan ke halaman login
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivity(intent)
+                // Lakukan registrasi
+                registerUser(name, email, password)
             }
         }
 
@@ -57,5 +60,28 @@ class RegisterActivity : AppCompatActivity() {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
+    }
+
+    private fun registerUser(name: String, email: String, password: String) {
+        val userApi = ApiClient.create(UserApi::class.java)
+        val registerRequest = RegisterRequest(username = name, password = password, email = email)
+
+        userApi.register(registerRequest).enqueue(object : Callback<RegisterResponse> {
+            override fun onResponse(call: Call<RegisterResponse>, response: Response<RegisterResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    Toast.makeText(this@RegisterActivity, "Registrasi berhasil!", Toast.LENGTH_SHORT).show()
+                    // Arahkan ke halaman login
+                    val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
+                    startActivity(intent)
+                    finish() // Tutup activity ini
+                } else {
+                    Toast.makeText(this@RegisterActivity, "Registrasi gagal: ${response.body()?.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<RegisterResponse>, t: Throwable) {
+                Toast.makeText(this@RegisterActivity, "Registrasi gagal: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 }

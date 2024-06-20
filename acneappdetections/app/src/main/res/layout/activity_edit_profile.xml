@@ -2,7 +2,6 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-
     <data>
         <variable
             name="profile"
@@ -81,12 +80,12 @@
             android:layout_marginTop="16dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/mobile_number"
+                android:id="@+id/number"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Mobile number"
+                android:hint="Number"
                 android:inputType="phone"
-                android:text="@={profile.mobileNumber}" />
+                android:text="@={profile.number}" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -111,12 +110,27 @@
             android:layout_marginTop="16dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/country"
+                android:id="@+id/region"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Country/Region"
+                android:hint="Region"
                 android:inputType="text"
-                android:text="@={profile.country}" />
+                android:text="@={profile.region}" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:text="@={profile.password}" />
 
         </com.google.android.material.textfield.TextInputLayout>
 

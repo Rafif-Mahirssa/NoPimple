@@ -12,21 +12,36 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.DragEvent
 import android.view.MenuInflater
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.PopupMenu
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
+import com.acneappdetections.api.ApiClient
+import com.acneappdetections.api.UserApi
+import com.acneappdetections.api.UserDataResponse
 import com.acneappdetections.databinding.ActivityHomeBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.support.image.TensorImage
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.FileInputStream
+import java.io.IOException
 import java.io.OutputStream
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 
 class HomeActivity : AppCompatActivity() {
 
@@ -36,11 +51,21 @@ class HomeActivity : AppCompatActivity() {
     private val PERMISSION_REQUEST_CODE = 3
     private val imageUris = mutableListOf<Uri>()
     private lateinit var adapter: DetectedImageAdapter
+    private lateinit var interpreter: Interpreter
+    private lateinit var labels: List<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Load TensorFlow Lite model
+        try {
+            interpreter = Interpreter(loadModelFile())
+            labels = loadLabels()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
 
         // Cek dan minta izin yang diperlukan
         if (!hasPermissions()) {
@@ -86,7 +111,7 @@ class HomeActivity : AppCompatActivity() {
                     val dragData = item.text.toString()
 
                     val droppedImageUri = Uri.parse(dragData)
-                    navigateToDetectedObjectActivity(droppedImageUri)
+                    processImage(droppedImageUri)
 
                     view.invalidate()
                     true
@@ -134,6 +159,9 @@ class HomeActivity : AppCompatActivity() {
             val intent = Intent(this, ProfileActivity::class.java)
             startActivity(intent)
         }
+
+        // Panggil fetchData untuk mendapatkan data user
+        fetchData()
     }
 
     private fun showPopupMenu(view: View) {
@@ -168,7 +196,7 @@ class HomeActivity : AppCompatActivity() {
                     selectedImageUri?.let {
                         imageUris.add(it)
                         adapter.notifyDataSetChanged()
-                        navigateToDetectedObjectActivity(it)
+                        processImage(it)
                     }
                 }
                 CAPTURE_IMAGE_REQUEST -> {
@@ -177,7 +205,7 @@ class HomeActivity : AppCompatActivity() {
                     savedImageUri?.let {
                         imageUris.add(it)
                         adapter.notifyDataSetChanged()
-                        navigateToDetectedObjectActivity(it)
+                        processImage(it)
                     }
                 }
             }
@@ -224,20 +252,43 @@ class HomeActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun navigateToDetectedObjectActivity(imageUri: Uri?) {
-        imageUri?.let {
-            // Simulate detected acne list
-            val detectedAcneList = arrayListOf(
-                DetectedAcne(it.toString(), "Pustule", "Inflammatory", "Pustules are small, inflamed, pus-filled, blister-like sores (pimples) on the skin surface.", "Topical antibiotics such as clindamycin, oral antibiotics, and benzoyl peroxide."),
-                DetectedAcne(it.toString(), "Papule", "Non-inflammatory", "Papules are small, red bumps that may be tender to the touch.", "Topical treatments including salicylic acid or benzoyl peroxide."),
-                // Add more detected acne data
-            )
+    private fun processImage(imageUri: Uri) {
+        val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, imageUri)
+        val tensorImage = TensorImage.fromBitmap(bitmap)
+        val inputBuffer = tensorImage.tensorBuffer.buffer
 
-            val intent = Intent(this, DetectedObjectActivity::class.java).apply {
-                putParcelableArrayListExtra("DETECTED_ACNE_LIST", detectedAcneList)
-            }
-            startActivity(intent)
+        val outputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, labels.size), org.tensorflow.lite.DataType.FLOAT32)
+        interpreter.run(inputBuffer, outputBuffer.buffer.rewind())
+
+        val scores = outputBuffer.floatArray
+        val maxScoreIdx = scores.indices.maxByOrNull { scores[it] } ?: -1
+        val detectedLabel = if (maxScoreIdx != -1) labels[maxScoreIdx] else "Unknown"
+
+        val detectedAcneList = arrayListOf(
+            DetectedAcne(imageUri.toString(), detectedLabel, "Type", "Description of $detectedLabel", "Treatment for $detectedLabel")
+        )
+
+        val intent = Intent(this, DetectedObjectActivity::class.java).apply {
+            putParcelableArrayListExtra("DETECTED_ACNE_LIST", detectedAcneList)
         }
+        startActivity(intent)
+    }
+
+    private fun loadModelFile(): MappedByteBuffer {
+        val fileDescriptor = assets.openFd("acne_detector_22kstep.tflite")
+        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
+        val fileChannel = inputStream.channel
+        val startOffset = fileDescriptor.startOffset
+        val declaredLength = fileDescriptor.declaredLength
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+    }
+
+    private fun loadLabels(): List<String> {
+        val labels = mutableListOf<String>()
+        assets.open("labelmap.txt").bufferedReader().useLines { lines ->
+            lines.forEach { labels.add(it) }
+        }
+        return labels
     }
 
     private fun hasPermissions(): Boolean {
@@ -263,5 +314,29 @@ class HomeActivity : AppCompatActivity() {
                 Toast.makeText(this, "Izin diperlukan untuk menjalankan aplikasi", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun fetchData() {
+        val userApi = ApiClient.create(UserApi::class.java)
+        userApi.getUserData().enqueue(object : Callback<UserDataResponse> {
+            override fun onResponse(call: Call<UserDataResponse>, response: Response<UserDataResponse>) {
+                if (response.isSuccessful) {
+                    val userData = response.body()
+                    // Update UI dengan data user yang diterima
+                    userData?.let {
+                        // Misalnya, tampilkan nama user di TextView atau lakukan tindakan lain
+                        Log.d("HomeActivity", "User Data: ${it.name}, ${it.email}, ${it.dateOfBirth}, ${it.number}, ${it.region}, ${it.password}")
+                    }
+                } else {
+                    // Handle error
+                    Log.e("HomeActivity", "Failed to fetch user data: ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<UserDataResponse>, t: Throwable) {
+                // Handle failure
+                Log.e("HomeActivity", "Error fetching user data", t)
+            }
+        })
     }
 }

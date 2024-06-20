@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">acneappdetections</string>
+    <string name="back_button_description">Back button</string>
+    <string name="detected_objects">Detected Objects</string>
 </resources>
